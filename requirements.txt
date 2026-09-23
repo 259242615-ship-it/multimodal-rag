@@ -1,0 +1,8 @@
+openai==3.14.1
+chromadb==1.5.9
+pymupdf==1.28.2
+python-dotenv==1.2.3
+fastapi==0.141.1
+uvicorn==0.53.0
+streamlit==1.64.0
+requests==2.34.2

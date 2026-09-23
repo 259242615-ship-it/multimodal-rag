@@ -1,0 +1,13 @@
+[project]
+name = "multimodal-rag"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.141.1",
+    "openai>=3.14.1",
+    "pymupdf>=1.28.2",
+    "python-dotenv>=1.2.3",
+    "requests>=2.34.2",
+    "streamlit>=1.64.0",
+]
