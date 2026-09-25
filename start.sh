@@ -14,7 +14,13 @@ for i in $(seq 1 30); do
 done
 
 # 前台启动前端(容器主进程,挂掉则容器退出)
+# enableCORS/enableXsrfProtection 必须关闭:
+#   平台通过 ms.show 域名反代到 FC 内部主机名,Origin 与 Host 不一致
+#   Streamlit 默认的跨域保护会拒绝 WebSocket 连接 → 页面一直转圈
 exec streamlit run src/app.py \
   --server.port 7860 \
   --server.address 0.0.0.0 \
-  --server.headless true
+  --server.headless true \
+  --server.enableCORS false \
+  --server.enableXsrfProtection false \
+  --browser.gatherUsageStats false
