@@ -35,9 +35,12 @@ def resolve_image(path_str: str) -> Path:
     return IMAGES_DIR / p.name
 
 
-def encode_image(img_path:str)->str:
-    """本地图片转base64 data URL"""
+def encode_image(img_path:str)->str|None:
+    """本地图片转base64 data URL;文件不存在返回None"""
     path = resolve_image(img_path)
+    if not path.is_file():
+        print(f"[!] 图片缺失:{path}")
+        return None
     with open(path,"rb") as f:
         b64 = base64.b64encode(f.read()).decode("utf-8")
     return f"data:image/png;base64,{b64}"
@@ -54,6 +57,11 @@ def generate_answer(query:str,chunks:list[dict])->str:
             })
         else:
             #图片:传原始图片,让视觉模型直接看
+            url = encode_image(c["image_path"])
+            if url is None:
+                #图片缺失 任然要输出占位 否则后面的编号错位
+                parts.append({"type":"text","text":f"[{i}](第{c['page']}页图片缺失 请忽略此条)"})
+                continue
             parts.append({
                 "type":"text",
                 "text":f"[{i}](第{c['page']}页 图片)"
@@ -67,13 +75,14 @@ def generate_answer(query:str,chunks:list[dict])->str:
     parts.append({"type":"text","text":f"\n用户问题:{query}"})
 
     response = client.chat.completions.create(
-        model="qwen-vl-plus",
+        model="qwen3-vl-plus",
         messages=[
             {"role":"system","content":SYSTEM_PROMPT},
             {"role":"user","content":parts}
-        ]
+        ],
+        timeout=60
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""
 
 if __name__ == "__main__":
     from retrieve import retrieve

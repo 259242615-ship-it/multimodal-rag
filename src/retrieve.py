@@ -55,7 +55,7 @@ def retrieve(query:str,top_k:int=5,only_type:str|None=None)->list[dict]:
     return out
 
 if __name__ == "__main__":
-    for q in ["蓝铜肽精华水的卖点","学位授予条件","抗邹成分"]:
+    for q in ["蓝铜肽精华水的卖点","学分要求","学位授予条件"]:
         print(f"\n===查询:{q}===")
         for r in retrieve(q,top_k=3):
             tag = "[图]" if r["type"] == "image" else "[文]"

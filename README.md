@@ -10,6 +10,8 @@ tags:
 datasets:
   evaluation:
 models:
+  - qwen3-vl-plus
+  - text-embedding-v3
 license: Apache License 2.0
 ---
 
@@ -65,7 +67,7 @@ license: Apache License 2.0
 | 层 | 技术 |
 |----|------|
 | 文档解析 | PyMuPDF（文本抽取 + 图片导出 + CMYK→RGB 转换 + 小图标过滤） |
-| 多模态理解 | Qwen-VL-Plus（图片描述生成 / 多模态答案生成） |
+| 多模态理解 | Qwen3-VL-Plus（`qwen3-vl-plus`，图片描述生成 / 多模态答案生成） |
 | 向量化 | DashScope text-embedding-v3 |
 | 向量库 | ChromaDB（持久化 + cosine 相似度） |
 | 后端 | FastAPI + Pydantic |
@@ -115,7 +117,33 @@ python src/api.py
 
 # 5. 启动前端(另开终端)
 streamlit run src/app.py
+
+# 6. (可选)混合检索 + 精排 —— 线上未启用,本地可跑
+pip install jieba rank-bm25           # BM25 混合检索必需(已含在 requirements.txt)
+pip install sentence-transformers     # 精排必需:含 PyTorch,约 2-3GB,首次再下载 1.1GB 模型
+python src/retrieve_hybrid.py         # use_rerank=True 即走 Cross-Encoder 精排
 ```
+
+> 线上（魔搭创空间）默认走纯向量检索：`api.py → retrieve()`，不依赖 `sentence_transformers`，
+> 因此 Docker 镜像保持轻量（`requirements.txt` 共 10 个包）；混合检索与精排作为**本地实验链路**独立存在。
+
+---
+
+## 🧪 测试
+
+```bash
+uv run pytest -q          # 19 passed, 1 skipped（约 4 秒）
+```
+
+三层测试，**全部离线可跑**：不需要 API key、不出网、不写真实向量库。
+
+| 层 | 文件 | 覆盖点 |
+|----|------|--------|
+| 纯函数 | `tests/test_chunk.py` | 切块丢字、重叠区对齐、空输入 |
+| 检索逻辑 | `tests/test_retrieve_hybrid.py` | RRF 只用排名、空库不除零、精排分数真正写回 |
+| 接口契约 | `tests/test_api_contract.py` | 引用编号连续、正文截断、路径穿越 404、413/422/503 语义、异常转为结构化 JSON |
+
+依赖（检索 / 生成 / 向量化 / 向量库）全部用 `monkeypatch` 替换，所以跑测试不会花钱。
 
 ---
 
@@ -132,7 +160,7 @@ streamlit run src/app.py
 
 - 图片描述质量依赖视觉模型能力，复杂图表可能描述不完整
 - 当前单文档场景验证，尚未测试大规模文档集
-- 检索层为纯向量检索，尚未接入混合检索（BM25 + RRF 融合）——规划中
+- 检索层的现状是**主动取舍**，不是没做：混合检索（BM25 + RRF 融合）与 Cross-Encoder 精排均已实现于 `src/retrieve_hybrid.py`，但只作本地实验链路，**线上默认纯向量**。原因是成本：`sentence-transformers` 带 PyTorch，镜像体积 +约 2GB、冷启动显著变慢，精排模型（`BAAI/bge-reranker-base`）首次运行还要再下载 1.1GB；而本项目单文档、142 个片段，属于小库小流量场景，收益不足以覆盖这笔启动成本。三档检索质量的实测对照见 `eval/`。
 
 ---
 

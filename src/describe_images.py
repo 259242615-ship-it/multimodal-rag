@@ -61,7 +61,7 @@ def describe_all(images_dir:Path,out_file:Path)->dict:
 def describe_image(img_path:str)->str:
     """调用视觉模型描述单张图片"""
     response = client.chat.completions.create(
-        model="qwen-vl-plus",
+        model="qwen3-vl-plus",
         messages=[
             {
                 "role":"user",
